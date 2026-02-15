@@ -1,4 +1,4 @@
-name: Build and Publish Distroless fastqc
+name: Build and Publish fastqc
 
 on:
   push:

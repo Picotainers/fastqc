@@ -1,5 +1,5 @@
 # fastqc
-Small, distroless-when-possible container for `fastqc`.
+Small compatibility-focused container for `fastqc`.
 
 ## how to use
 ```bash
