@@ -1,7 +1,12 @@
 # fastqc
-Small compatibility-focused container for `fastqc`.
+Container image for FastQC built from source.
 
-## how to use
+## Quick Usage
+
 ```bash
-docker run --rm -v "$(pwd):/data" picotainers/fastqc:latest --help
+# Pull the image
+docker pull docker.io/picotainers/fastqc:latest
+
+# Run the tool
+docker run --rm docker.io/picotainers/fastqc:latest fastqc --help
 ```

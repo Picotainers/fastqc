@@ -1,34 +1,43 @@
 # syntax=docker/dockerfile:1
-# Compatibility-first template for fastqc.
-# Installs package from Bioconda and copies the full conda runtime to avoid missing libs/interpreters.
 
-FROM mambaorg/micromamba:2.0.5-debian12-slim AS builder
+FROM debian:bookworm AS builder
 
-RUN micromamba install -y -n base -c conda-forge -c bioconda \
-    fastqc \
-    && micromamba clean --all --yes
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends \
+        ant \
+        ca-certificates \
+        git \
+        openjdk-17-jdk-headless \
+        perl \
+    && rm -rf /var/lib/apt/lists/*
 
-# Resolve a runnable command for this package.
-# Prefer exact match, then underscore variant, then prefix match.
-RUN set -eux; \
-    BIN=""; \
-    if [ -x "/opt/conda/bin/fastqc" ]; then BIN="/opt/conda/bin/fastqc"; fi; \
-    if [ -z "$BIN" ]; then CAND="/opt/conda/bin/$(echo fastqc | tr '-' '_')"; [ -x "$CAND" ] && BIN="$CAND" || true; fi; \
-    if [ -z "$BIN" ]; then BIN="$(find /opt/conda/bin -maxdepth 1 -type f -perm -111 -name 'fastqc*' | head -n1 || true)"; fi; \
-    test -n "$BIN"; \
-    printf '%s\n' "$BIN" > /tmp/tool-entry-path
+WORKDIR /src
+RUN git clone --depth 1 https://github.com/s-andrews/FastQC.git fastqc \
+    && cd fastqc \
+    && ant cleanall build \
+    && chmod +x bin/fastqc \
+    && install -d /out/opt/fastqc /out/usr/local/bin \
+    && cp -a bin/. /out/opt/fastqc/ \
+    && printf '%s\n' \
+        '#!/bin/sh' \
+        'set -eu' \
+        'if [ "${1:-}" = "fastqc" ]; then shift; fi' \
+        'exec /opt/fastqc/fastqc "$@"' \
+      > /out/usr/local/bin/fastqc \
+    && chmod +x /out/usr/local/bin/fastqc
 
-FROM mambaorg/micromamba:2.0.5-debian12-slim
+FROM debian:bookworm-slim
 
-COPY --from=builder /opt/conda /opt/conda
-COPY --from=builder /tmp/tool-entry-path /tmp/tool-entry-path
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends \
+        ca-certificates \
+        openjdk-17-jre-headless \
+        perl \
+        unzip \
+    && rm -rf /var/lib/apt/lists/*
 
-USER root
-ENV PATH="/opt/conda/bin:${PATH}"
-ENV LD_LIBRARY_PATH="/opt/conda/lib:/opt/conda/lib64"
-RUN set -eux; \
-    BIN="$(cat /tmp/tool-entry-path)"; \
-    printf '#!/usr/bin/env bash\nexec "%s" "$@"\n' "$BIN" > /usr/local/bin/fastqc
-RUN chmod +x /usr/local/bin/fastqc && rm -f /tmp/tool-entry-path
+COPY --from=builder /out/ /
 WORKDIR /data
+
 ENTRYPOINT ["/usr/local/bin/fastqc"]
+CMD ["--help"]
