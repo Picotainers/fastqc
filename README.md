@@ -1,12 +1,23 @@
 # fastqc
-Container image for FastQC built from source.
+
+Container image for FastQC built from upstream source.
 
 ## Quick Usage
 
 ```bash
-# Pull the image
 docker pull docker.io/picotainers/fastqc:latest
+docker run --rm docker.io/picotainers/fastqc:latest --help
+```
 
-# Run the tool
-docker run --rm docker.io/picotainers/fastqc:latest fastqc --help
+## Usage
+
+```bash
+# Run QC on FASTQ files in the current directory
+docker run --rm -v "$(pwd):/data" -w /data docker.io/picotainers/fastqc:latest sample_R1.fastq.gz sample_R2.fastq.gz
+```
+
+## Building
+
+```bash
+docker build -t docker.io/picotainers/fastqc:latest .
 ```
