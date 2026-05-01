@@ -12,7 +12,8 @@ RUN apt-get update \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /src
-RUN git clone --depth 1 https://github.com/s-andrews/FastQC.git fastqc \
+ARG FASTQC_TAG=v0.12.1
+RUN git clone --depth 1 --branch ${FASTQC_TAG} https://github.com/s-andrews/FastQC.git fastqc \
     && cd fastqc \
     && ant cleanall build \
     && chmod +x bin/fastqc \
